@@ -1,0 +1,64 @@
+<!-- Local rules -->
+
+<!-- Modify it at your will. -->
+<!-- Copyright (C) 2015, Wazuh Inc. -->
+
+<!-- Example -->
+<group name="local,syslog,sshd,sudo,fim">
+
+  <rule id="100001" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>5760</if_matched_sid>
+    <same_source_ip />
+    <description>SSH Brute Force detected from $(srcip) - Direct attack!</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <group>brute_force</group>
+  </rule>
+
+  <rule id="100002" level="14">
+    <if_matched_sid>100001</if_matched_sid>
+    <if_sid>5715</if_sid>
+    <same_source_ip />
+    <description>Brute force SUCCESS! Login after multiple failures from $(srcip)</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>brute_force,critical_incident</group>
+  </rule>
+
+  <rule id="100003" level="10" frequency="20" timeframe="60">
+    <if_matched_sid>550</if_matched_sid>
+    <description>Mass file modification detected - $(frequency) files changed. Possible ransomware!</description>
+    <group>ransomware,fim,mass_change</group>
+  </rule>
+
+  <rule id="100005" level="13">
+    <if_sid>5402</if_sid>
+    <if_matched_sid>5404</if_matched_sid>
+    <description>Sudo success after multiple failures by $(dstuser)!</description>
+    <group>sudo</group>
+  </rule>
+
+  <rule id="100006" level="10">
+    <if_sid>550</if_sid>
+    <match>/etc/passwd|/etc/shadow|/etc/sudoers</match>
+    <description>System authentication file $(file) has been modified!</description>
+    <group>fim,system_change</group>
+  </rule>
+
+  <rule id="100007" level="8" frequency="5" timeframe="300">
+    <if_matched_sid>5715</if_matched_sid>
+    <description>Single IP $(srcip) logging into multiple different users!</description>
+    <group>account_takeover</group>
+  </rule>
+
+  <rule id="100008" level="13">
+    <if_matched_sid>100007</if_matched_sid>
+    <if_sid>5402</if_sid>
+    <description>Multiple logins followed by root access by user $(data.srcuser)!</description>
+    <group>account_takeover</group>
+  </rule>
+
+</group>
