@@ -4,9 +4,6 @@
 | ---            | ---        |
 | Hazza Danta Hermandanu               | 5025241117           |
 
-## URL API
-<http://52.175.122.105/health>
-
 ## Deskripsi Tugas
 1. Lakukan instalasi Wazuh Manager pada sebuah VM/VPS berbasis Linux.
 2. Lakukan instalasi Wazuh Agent pada satu perangkat lain.
@@ -117,18 +114,370 @@
       <group>brute_force</group>
     </rule>
    ```
-   <br>
+   
     - Konteks Keamanan
       Attacker menggunakan tools seperti Hydra untuk mencoba kombinasi password secara otomatis ke port SSH.
     - Penjelasan
-        -  Buka
-      
+        -  Header
+            ```xml
+            <rule id="100001" level="12" frequency="5" timeframe="120">
+            ```
+
+            - Set `rule id`, `level`, `frequency`, dan `timeframe`
+                - `rule id = "100001"`: unique id untuk rule yang dibuat
+                - `level="12"`: tingkat bahaya adalah 12
+                - `frequency="5"`: Rule akan aktif jika kejadian yang dimaksud aktif 5 kali
+                - `timeframe="120"`: Kejadian tersebut harus terjadi dalam waktu <= 120 detik
+            - Trigger
+              ```xml
+              <if_matched_sid>5760</if_matched_sid>
+              ```
+              - Jika ada kejadian 5760 sebanyak 5 kali dalam 120 detik, maka rule 100001 akan aktif
+            - `<same_source_ip />`
+              - Memastikan bahwa 5 kejadian tadi berasal dari ip yang sama
+            - Deskripsi pesan
+              ```xml
+              <description>SSH Brute Force detected from $(srcip) - Direct attack!</description>
+              ```
+              - Pesan akan muncul jika rule aktif, `$(srcip)` otomatis mengambil ip penyerang
+            - Framework Penyerangan
+              ```xml
+              <mitre>
+                <id>T1110</id>
+              </mitre>
+              ```
+              - Menggunakan teknik `T1110` atau bruteforce
+            - Grouping
+              ```xml
+              <group>brute_force</group>
+              ```
+              - Mengkategorikan rule sebagai `brute_force`
+    - Testing
+        - Install hydra
+          ```bash
+          sudo apt install hydra -y
+          ```
+        - Downlaod file `RockYou.txt` yang berisi kumpulan password untuk testing hydra
+          ```bash
+          wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt -O ~/rockyou.txt
+          ```
+        - Install `openssh` dan start
+          ```bash
+          sudo apt install openssh-server -y
+          sudo systemctl start ssh
+          ```
+        - Lakukan Attacking
+          ```bash
+          hydra -l root -P ~/rockyou.txt 52.175.51.38 ssh -t 4 -V
+          ```
+        - Hasil Alert
+          <img width="1600" height="311" alt="image" src="https://github.com/user-attachments/assets/3d7cb8a7-520d-4ad2-b3d1-7bcdda703901" /><br>
+2. Brute Force Success
+   ```xml
+   <rule id="100002" level="14">
+    <if_matched_sid>100001</if_matched_sid>
+    <if_sid>5715</if_sid>
+    <same_source_ip />
+    <description>Brute force SUCCESS! Login after multiple failures from $(srcip)</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>brute_force</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Setelah bebera[a percobaan, attacker akhirnya berhasil menebak password yang benar.
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100002" level="14">
+            ```
+
+            - Set `rule id` dan `level`
+                - `rule id = "100002"`: unique id untuk rule yang dibuat
+                - `level="14"`: tingkat bahaya adalah 14
+            - Trigger
+              ```xml
+              <if_matched_sid>100001</if_matched_sid>
+              <if_sid>5715</if_sid>
+              ```
+              - Rule akan aktif jika sebelumnya rule 100001 aktif dan rule 5715 terjadi (attacker berhasil login)
+            - `<same_source_ip />`
+              - Memastikan bahwa ip yang gagal masuk berkali-kali tadi berasal dari ip yang sama
+            - Deskripsi pesan
+              ```xml
+              <description>Brute force SUCCESS! Login after multiple failures from $(srcip)</description>
+              ```
+              - Pesan akan muncul jika rule aktif, `$(srcip)` otomatis mengambil ip penyerang
+            - Framework Penyerangan
+              ```xml
+              <mitre>
+                <id>T1110</id>
+                <id>T1078</id>
+              </mitre>
+              ```
+              - Menggunakan teknik `T1110` atau bruteforce
+              - Menambahkan `T1078` yaitu valid account yang artinya attacker sekarang mempunyai akun valid untuk masuk
+            - Grouping
+              ```xml
+              <group>brute_force</group>
+              ```
+              - Mengkategorikan rule sebagai `brute_force`
+            - `</rule>` untuk menutup rule
+    - Testing
+        - Aktifkan rule 100001 sebelumnya
+        - Masuk ke VPS (Wazuh Manager) melalui VM (Wazuh Agent) dan masukkan password yang benar
+          ```bash
+          ssh azureuser@52.175.51.38
+          ```
+        - Hasil Alert
+          <img width="1894" height="92" alt="image" src="https://github.com/user-attachments/assets/57be4bdb-27bc-4b7f-911f-ef025486c9c5" /><br>
+3. Mass File Modification
+   ```xml
+   <rule id="100003" level="10" frequency="20" timeframe="60">
+    <if_matched_sid>550</if_matched_sid>
+    <description>Mass file modification detected - $(frequency) files changed. Possible ransomware!</description>
+    <group>ransomware,fim,mass_change</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Attacker mencoba melakukan enkripsi banyak file secara massal dalam waktu singkat.
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100003" level="10" frequency="20" timeframe="60">
+            ```
+
+            - Set `rule id`, `level`, `frequency`, dan `timeframe`
+                - `rule id = "100003"`: unique id untuk rule yang dibuat
+                - `level="10"`: tingkat bahaya adalah 10
+                - `frequency="20"`: Rule akan aktif jika kejadian yang dimaksud aktif 20 kali
+                - `timeframe="60"`: Kejadian tersebut harus terjadi dalam waktu <= 60 detik
+        - Trigger
+          ```xml
+          if_matched_sid>550</if_matched_sid>
+          ```
+          - Jika ada kejadian 550 sebanyak 20 kali dalam 60 detik, maka rule 100003 akan aktif
+        - Deskripsi pesan
+          ```xml
+          <description>Mass file modification detected - $(frequency) files changed. Possible ransomware!</description>
+          ```
+          - Pesan akan muncul jika rule aktif, `$(frequency)` menunjukkan berapa file yang telah di enkripsi
+        - Grouping
+          ```xml
+          <group>ransomware,fim,mass_change</group>
+          ```
+          - Mengkategorikan rule sebagai `ransomware,fim,mass_change`
+        - `</rule>` untuk menutup rule
+    - Testing
+        - Buat direktori untuk testing
+          ```bash
+          mkdir ~/mass
+          cd ~/mass
+          ```
+        - Buat file dummy
+          ```bash
+          \for i in {1..25}; do echo "test $i" > file$i.txt; done
+          ```
+        - Ubah/enkripsi isi file dummy
+          ```bash
+          for i in {1..25}; do echo "content $i" > file$i.txt; sleep 0.1; done
+          ```
+        - Hasil Alert
+          <img width="1903" height="84" alt="image" src="https://github.com/user-attachments/assets/1b9423ce-3756-4739-aeca-6dd76ad04e3b" /><br>
+
+4. Sudo Success After Failures
+   ```bash
+   <rule id="100005" level="13">
+    <if_sid>5402</if_sid>
+    <if_matched_sid>5404</if_matched_sid>
+    <description>Sudo success after multiple failures by $(dstuser)!</description>
+    <group>sudo</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Attacker yang sudah masuk ke sistem mencoba ndapatkan hak akses ke root menggunakan sudo dengan menebak password.
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100005" level="13">
+            ```
+
+            - Set `rule id` dan `level`
+              - `rule id = "100005"`: unique id untuk rule yang dibuat
+              - `level="13"`: tingkat bahaya adalah 13
+        - Trigger
+            ```xml
+            <if_sid>5402</if_sid>
+            <if_matched_sid>5404</if_matched_sid>
+            ```
+            - Rule akan aktif jika sebelumnya rule 5402 (berhasil mengakses root) aktif dan rule 5404 terjadi (terjadi 3 kesalahan dalam mengakses root)
+        - Deskripsi pesan
+            ```xml
+            <description>Sudo success after multiple failures by $(dstuser)!</description>
+            ```
+            - Pesan akan muncul jika rule aktif, `$(dstuser)` menunjukkan siapa yang sedang mengakses
+        - Grouping
+            ```xml
+            <group>sudo</group>
+            ```
+            - Mengkategorikan rule sebagai `sudo`
+        - `</rule>` untuk menutup rule
+    - Testing
+      - Jalankan sudo dan masukkan password yang salah, lakukan sebanyak 4 kali
+        ```bash
+        sudo ls
+        ```
+      - Jalankan sudo lagi dan masukkan password yang benar
+      - Cek Alert
+        <img width="1895" height="92" alt="image" src="https://github.com/user-attachments/assets/12d7fbb2-7a1d-4551-ae1e-41ac4b538b81" /><br>
+
+5. Critical File Modified
+   ```bash
+   <rule id="100006" level="10">
+    <if_sid>550</if_sid>
+    <match>/etc/passwd|/etc/shadow|/etc/sudoers</match>
+    <description>System authentication file $(file) has been modified!</description>
+    <group>fim,system_change</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Attacker yang sudah masuk ke sistem mencoba ndapatkan hak akses ke root menggunakan sudo dengan menebak password.
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100006" level="10">
+            ```
+
+            - Set `rule id` dan `level`
+              - `rule id = "100006"`: unique id untuk rule yang dibuat
+              - `level="10"`: tingkat bahaya adalah 10
+        - Trigger
+            ```xml
+            <if_sid>5402</if_sid>
+            <if_matched_sid>5404</if_matched_sid>
+            ```
+            - Rule akan aktif jika rule 5402 (berhasil mengakses root) aktif dan `match` untuk memberitahu bahwa jika `/etc/passwd|/etc/shadow|/etc/sudoers` berubah
+        - Deskripsi pesan
+            ```xml
+            <description>System authentication file $(file) has been modified!</description>
+            ```
+            - Pesan akan muncul jika rule aktif, `$(file)` menunjukkan file mana yang berubah
+        - Grouping
+            ```xml
+            <group>fim,system_change</group>
+            ```
+            - Mengkategorikan rule sebagai `fim,system_change`
+        - `</rule>` untuk menutup rule
+    - Testing
+      - Tambahkan user baru
+        ```bash
+        sudo useradd test
+        ```
+      - Ubah password user
+        ```bash
+        sudo passwd test
+        ```
+      - Cek Alert
+        <img width="1889" height="99" alt="image" src="https://github.com/user-attachments/assets/d864773d-c61c-410a-b7ff-38f932c4b891" /><br>
+6. Multiple Users From Single IP
+   ```bash
+   <rule id="100007" level="8" frequency="5" timeframe="300">
+    <if_matched_sid>5715</if_matched_sid>
+    <description>Single IP $(srcip) logging into multiple different users!</description>
+    <group>account_takeover</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Attacker punya database `username:password` yang bocor dan mencoba kombinasi tersebut ke banyak user berbeda dari 1 IP
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100007" level="8" frequency="5" timeframe="300">
+            ```
+
+            - Set `rule id`, `level`, `frequency`, dan `timeframe`
+                - `rule id = "100007"`: unique id untuk rule yang dibuat
+                - `level="8"`: tingkat bahaya adalah 8
+                - `frequency="5"`: Rule akan aktif jika kejadian yang dimaksud aktif 5 kali
+                - `timeframe="300"`: Kejadian tersebut harus terjadi dalam waktu <= 300 detik
+        - Trigger
+            ```xml
+            <if_matched_sid>5715</if_matched_sid>
+            ```
+            - Rule akan aktif jika rule 5715 (berhasil autentikasi) sudah terjadi sebanyak 5 kali
+        - Deskripsi pesan
+            ```xml
+            <description>Single IP $(srcip) logging into multiple different users!</description>
+            ```
+            - Pesan akan muncul jika rule aktif, `$(srcip)` otomatis mendapatkan ip dari penyerang
+        - Grouping
+            ```xml
+            <group>account_takeover</group>
+            ```
+            - Mengkategorikan rule sebagai `account_takeover`
+        - `</rule>` untuk menutup rule
+    - Testing
+      - Tambahkan beberapa user baru
+        ```bash
+        for i in {1..5}; do sudo useradd -m -p $(openssl passwd -1 password123) test$i; done
+        ```
+      - Lakukan sudo ke semua user, masukkan password, lalu `exit`
+        ```bash
+        sudo ls
+        exit
+        ```
+      - Cek Alert
+        <img width="1881" height="52" alt="image" src="https://github.com/user-attachments/assets/bf05e766-8567-4703-b298-0d1747e4f89e" /><br>
+7. Multiple Logins Then Root Access
+   ```bash
+   <rule id="100008" level="13">
+    <if_matched_sid>100007</if_matched_sid>
+    <if_sid>5402</if_sid>
+    <description>Multiple logins followed by root access by user $(data.srcuser)!</description>
+    <group>account_takeover</group>
+   </rule>
+   ```
+   - Konteks Keamanan
+      Setelah berhasil masuk ke banyak akun (100007), attacker menggunakan salah satu akun tersebut untuk mendapatkan akses ke root dengan sudo.
+    - Penjelasan
+        -  Header
+            ```xml
+            <rule id="100008" level="13">
+            ```
+
+            - Set `rule id` dan `level`
+                - `rule id = "1000078"`: unique id untuk rule yang dibuat
+                - `level="13"`: tingkat bahaya adalah 13
+        - Trigger
+            ```xml
+            <if_matched_sid>100007</if_matched_sid>
+            <if_sid>5402</if_sid>
+            ```
+            - Rule akan aktif jika rule 100007 sudah terjadi dan rule 5402 terjadi (berhasil sudo)
+        - Deskripsi pesan
+            ```xml
+            <description>Multiple logins followed by root access by user $(data.srcuser)!</description>
+            ```
+            - Pesan akan muncul jika rule aktif, `$(data.srcuser)` menunjukkan user yang sedang mengakses root
+        - Grouping
+            ```xml
+            <group>account_takeover</group>
+            ```
+            - Mengkategorikan rule sebagai `account_takeover`
+        - `</rule>` untuk menutup rule
+    - Testing
+      - Aktifkan rule 100007
+      - Lakukan sudo ke semua user dan masukkan password
+        ```bash
+        sudo ls
+        exit
+        ```
+      - Coba akses sudo 1 per 1 dari user
+      - Cek Alert
+        <img width="1891" height="90" alt="image" src="https://github.com/user-attachments/assets/700e78e7-bb46-418b-be74-f4232ca5fa60" /><br>   
 
 ## Referensi
-1. <https://youtu.be/5ZMpbdK0uqU?si=0vOLGOuXC7b23_mT>
-2. <https://docs.python.org/3/library/datetime.html>
-3. <https://github.com/arsitektur-jaringan-komputer/modul-ansible/>
-4. <https://docs.github.com/en/actions>
-5. <https://oneuptime.com/blog/post/2026-02-21-ansible-specify-ssh-private-key/view>
-6. <https://docs.ansible.com/projects/ansible/latest/>
+1. 
 
