@@ -98,6 +98,13 @@
       <img width="807" height="484" alt="image" src="https://github.com/user-attachments/assets/0c2d4499-ed1d-4602-80a5-ce2f70008a09" /><br>
 
 ## Custom Rule
+- Buka `/var/ossec/etc/rules/local_rules.xml` untuk menambah custom rule
+  ```bash
+  nano /var/ossec/etc/rules/local_rules.xml
+  ```
+  <br>
+- Gunakan `rule id` antara 100000 sampai 120000
+  
 1. Brute Force Detection
    ```xml
    <rule id="100001" level="12" frequency="5" timeframe="120">
@@ -114,6 +121,7 @@
     - Konteks Keamanan
       Attacker menggunakan tools seperti Hydra untuk mencoba kombinasi password secara otomatis ke port SSH.
     - Penjelasan
+        -  Buka
       
 
 ## Referensi
