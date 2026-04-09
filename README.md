@@ -115,7 +115,7 @@
     </rule>
    ```
    
-    - Konteks Keamanan
+    - Konteks Keamanan <br>
       Attacker menggunakan tools seperti Hydra untuk mencoba kombinasi password secara otomatis ke port SSH.
     - Penjelasan
         -  Header
@@ -186,8 +186,8 @@
     <group>brute_force</group>
    </rule>
    ```
-   - Konteks Keamanan
-      Setelah bebera[a percobaan, attacker akhirnya berhasil menebak password yang benar.
+   - Konteks Keamanan <br>
+     Setelah beberapa percobaan, attacker akhirnya berhasil menebak password yang benar.
     - Penjelasan
         -  Header
             ```xml
@@ -241,7 +241,7 @@
     <group>ransomware,fim,mass_change</group>
    </rule>
    ```
-   - Konteks Keamanan
+   - Konteks Keamanan <br>
       Attacker mencoba melakukan enkripsi banyak file secara massal dalam waktu singkat.
     - Penjelasan
         -  Header
@@ -296,7 +296,7 @@
     <group>sudo</group>
    </rule>
    ```
-   - Konteks Keamanan
+   - Konteks Keamanan <br>
       Attacker yang sudah masuk ke sistem mencoba ndapatkan hak akses ke root menggunakan sudo dengan menebak password.
     - Penjelasan
         -  Header
@@ -342,7 +342,7 @@
     <group>fim,system_change</group>
    </rule>
    ```
-   - Konteks Keamanan
+   - Konteks Keamanan <br>
       Attacker yang sudah masuk ke sistem mencoba ndapatkan hak akses ke root menggunakan sudo dengan menebak password.
     - Penjelasan
         -  Header
@@ -389,7 +389,7 @@
     <group>account_takeover</group>
    </rule>
    ```
-   - Konteks Keamanan
+   - Konteks Keamanan <br>
       Attacker punya database `username:password` yang bocor dan mencoba kombinasi tersebut ke banyak user berbeda dari 1 IP
     - Penjelasan
         -  Header
@@ -439,7 +439,7 @@
     <group>account_takeover</group>
    </rule>
    ```
-   - Konteks Keamanan
+   - Konteks Keamanan <br>
       Setelah berhasil masuk ke banyak akun (100007), attacker menggunakan salah satu akun tersebut untuk mendapatkan akses ke root dengan sudo.
     - Penjelasan
         -  Header
@@ -479,5 +479,6 @@
         <img width="1891" height="90" alt="image" src="https://github.com/user-attachments/assets/700e78e7-bb46-418b-be74-f4232ca5fa60" /><br>   
 
 ## Referensi
-1. 
+1. <https://documentation.wazuh.com/current/index.html>
+2. <https://gemini.google.com/share/ffdfd9f3a57f>
 
