@@ -481,4 +481,5 @@
 ## Referensi
 1. <https://documentation.wazuh.com/current/index.html>
 2. <https://gemini.google.com/share/ffdfd9f3a57f>
+3. <https://github.com/brannondorsey/naive-hashcat>
 
